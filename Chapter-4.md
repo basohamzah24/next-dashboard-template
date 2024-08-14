@@ -59,7 +59,7 @@ Di dalam folder /dashboard, tambahkan file baru bernama layout.jsx dan tempelkan
 
 ```javascript
 // /app/dashboard/layout.jsx
-iimport SideNav from '@/app/ui/dashboard/sidenav';
+import SideNav from '@/app/ui/dashboard/sidenav';
 
 export default function Layout({ children }) {
   return (
