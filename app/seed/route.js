@@ -103,22 +103,32 @@ async function seedRevenue() {
 
 export async function GET() {
   try {
+    // Start transaction
     await client.sql`BEGIN`;
+
+    // Seed data
     await seedUsers();
     await seedCustomers();
     await seedInvoices();
     await seedRevenue();
+
+    // Commit transaction
     await client.sql`COMMIT`;
 
-    return new Response(JSON.stringify({ message: 'Database seeded successfully' }), { status: 200 });
-  } catch (error) {
-    await client.sql`ROLLBACK`;
+    // Return success response
     return new Response(
-      JSON.stringify({
-        message:
-          'Uncomment this file and remove this line. You can delete this file when you are finished.',
-      }),
-      { status: 200, headers: { 'Content-Type': 'application/json' }}
-  );
- }
+      JSON.stringify({ message: 'Database seeded successfully' }),
+      { status: 200 }
+    );
+  } catch (error) {
+    // Rollback transaction in case of error
+    await client.sql`ROLLBACK`;
+
+    // Return error response
+    return new Response(
+      JSON.stringify({ error: error.message }),
+      { status: 500 }
+    );
+  }
 }
+
