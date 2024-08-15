@@ -2,7 +2,7 @@
  import { db } from '@vercel/postgres';
  import { invoices, customers, revenue, users } from '../lib/placeholder-data';
 
-const client = await db.connect();
+ const client = await db.connect();
 
 async function seedUsers() {
   await client.sql`CREATE EXTENSION IF NOT EXISTS "uuid-ossp"`;
@@ -103,32 +103,22 @@ async function seedRevenue() {
 
 export async function GET() {
   try {
-    // Start transaction
     await client.sql`BEGIN`;
-
-    // Seed data
     await seedUsers();
     await seedCustomers();
     await seedInvoices();
     await seedRevenue();
-
-    // Commit transaction
     await client.sql`COMMIT`;
 
-    // Return success response
-    return new Response(
-      JSON.stringify({ message: 'Database seeded successfully' }),
-      { status: 200 }
-    );
+    return new Response(JSON.stringify({ message: 'Database seeded successfully' }), { status: 200 });
   } catch (error) {
-    // Rollback transaction in case of error
     await client.sql`ROLLBACK`;
-
-    // Return error response
     return new Response(
-      JSON.stringify({ error: error.message }),
-      { status: 500 }
+      JSON.stringify({
+        message:
+          'Uncomment this file and remove this line. You can delete this file when you are finished.',
+      }),
+      { status: 200, headers: { 'Content-Type': 'application/json' }}
     );
   }
 }
-
