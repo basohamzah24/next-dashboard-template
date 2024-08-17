@@ -136,8 +136,7 @@ Alih-alih mengurutkan faktur terbaru di memori, Anda dapat menggunakan kueri SQL
 // /app/lib/data.js
 // Fetch the last 5 invoices, sorted by date
 const data =
-  (await sql) <
-  LatestInvoiceRaw >
+  (await sql) <LatestInvoiceRaw >
   `
   SELECT invoices.amount, customers.name, customers.image_url, customers.email
   FROM invoices
