@@ -3,16 +3,7 @@ import { formatCurrency } from './utils';
 
 export async function fetchRevenue() {
   try {
-    // Artificially delay a response for demo purposes.
-    // Don't do this in production :)
-
-    // console.log('Fetching revenue data...');
-    // await new Promise((resolve) => setTimeout(resolve, 3000));
-
     const data = await sql`SELECT * FROM revenue`;
-
-    // console.log('Data fetch completed after 3 seconds.');
-
     return data.rows;
   } catch (error) {
     console.error('Database Error:', error);
@@ -42,9 +33,6 @@ export async function fetchLatestInvoices() {
 
 export async function fetchCardData() {
   try {
-    // You can probably combine these into a single SQL query
-    // However, we are intentionally splitting them to demonstrate
-    // how to initialize multiple queries in parallel with JS.
     const invoiceCountPromise = sql`SELECT COUNT(*) FROM invoices`;
     const customerCountPromise = sql`SELECT COUNT(*) FROM customers`;
     const invoiceStatusPromise = sql`SELECT
@@ -76,6 +64,7 @@ export async function fetchCardData() {
 }
 
 const ITEMS_PER_PAGE = 6;
+
 export async function fetchFilteredInvoices(query, currentPage) {
   const offset = (currentPage - 1) * ITEMS_PER_PAGE;
 
@@ -140,6 +129,10 @@ export async function fetchInvoiceById(id) {
       FROM invoices
       WHERE invoices.id = ${id};
     `;
+
+    if (data.rows.length === 0) {
+      throw new Error('Invoice not found.');
+    }
 
     const invoice = data.rows.map((invoice) => ({
       ...invoice,

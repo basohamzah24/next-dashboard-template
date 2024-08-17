@@ -1,4 +1,10 @@
+// utils.js
+
 export const formatCurrency = (amount) => {
+  if (typeof amount !== 'number') {
+    throw new Error('Amount must be a number');
+  }
+
   return (amount / 100).toLocaleString('en-US', {
     style: 'currency',
     currency: 'USD',
@@ -7,15 +13,24 @@ export const formatCurrency = (amount) => {
 
 export const formatDateToLocal = (dateStr, locale = 'en-US') => {
   const date = new Date(dateStr);
+  if (isNaN(date)) {
+    throw new Error('Invalid date string');
+  }
+
   const options = {
     day: 'numeric',
     month: 'short',
     year: 'numeric',
   };
+
   return new Intl.DateTimeFormat(locale, options).format(date);
 };
 
 export const generateYAxis = (revenue) => {
+  if (!Array.isArray(revenue) || revenue.length === 0) {
+    throw new Error('Revenue data must be a non-empty array');
+  }
+
   const yAxisLabels = [];
   const highestRecord = Math.max(...revenue.map((month) => month.revenue));
   const topLabel = Math.ceil(highestRecord / 1000) * 1000;
@@ -28,6 +43,10 @@ export const generateYAxis = (revenue) => {
 };
 
 export const generatePagination = (currentPage, totalPages) => {
+  if (typeof currentPage !== 'number' || typeof totalPages !== 'number') {
+    throw new Error('Current page and total pages must be numbers');
+  }
+
   if (totalPages <= 7) {
     return Array.from({ length: totalPages }, (_, i) => i + 1);
   }
