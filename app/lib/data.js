@@ -1,59 +1,76 @@
-import { sql } from '@vercel/postgres';
-import { formatCurrency } from './utils';
+import { sql } from "@vercel/postgres";
+import { formatCurrency } from "./utils";
 
+// Fungsi untuk mengambil data pendapatan
 export async function fetchRevenue() {
   try {
-    console.log('Fetching revenue data...');
+    console.log("Fetching revenue data...");
     await new Promise((resolve) => setTimeout(resolve, 3000));
 
     const data = await sql`SELECT * FROM revenue`;
 
-    console.log('Data fetch completed after 3 seconds.');
+    console.log("Data fetch completed after 3 seconds.");
 
     return data.rows;
   } catch (error) {
-    console.error('Database Error:', error);
-    throw new Error('Failed to fetch revenue data.');
+    console.error("Database Error fetching revenue:", error.message);
+    throw new Error("Failed to fetch revenue data.");
   }
 }
 
+// Fungsi untuk mengambil data invoice terbaru
+// Fungsi untuk mengambil data invoice terbaru
 export async function fetchLatestInvoices() {
   try {
     const data = await sql`
-      SELECT invoices.amount, customers.name, customers.image_url, customers.email, invoices.id
+      SELECT invoices.id, invoices.amount, customers.name, customers.image_url, customers.email
       FROM invoices
       JOIN customers ON invoices.customer_id = customers.id
       ORDER BY invoices.date DESC
-      LIMIT 5`;
+      LIMIT 5
+    `;
+
+    // Cek apakah data yang diambil bervariasi
+    console.log("Fetched latest invoices:", data.rows);
 
     const latestInvoices = data.rows.map((invoice) => ({
-      ...invoice,
+      id: invoice.id,
+      name: invoice.name,
+      email: invoice.email,
+      image_url: invoice.image_url,
       amount: formatCurrency(invoice.amount),
     }));
 
     return latestInvoices;
   } catch (error) {
-    console.error('Database Error:', error);
-    throw new Error('Failed to fetch the latest invoices.');
+    console.error("Database Error fetching latest invoices:", error.message);
+    throw new Error("Failed to fetch the latest invoices.");
   }
 }
 
+
+// Fungsi untuk mengambil data kartu (statistics)
 export async function fetchCardData() {
   try {
-    const [invoiceCountResult, customerCountResult, invoiceStatusResult] = await Promise.all([
-      sql`SELECT COUNT(*) FROM invoices`,
-      sql`SELECT COUNT(*) FROM customers`,
-      sql`
-        SELECT
-          SUM(CASE WHEN status = 'paid' THEN amount ELSE 0 END) AS "paid",
-          SUM(CASE WHEN status = 'pending' THEN amount ELSE 0 END) AS "pending"
-        FROM invoices`
+    const invoiceCountPromise = sql`SELECT COUNT(*) FROM invoices`;
+    const customerCountPromise = sql`SELECT COUNT(*) FROM customers`;
+    const invoiceStatusPromise = sql`
+      SELECT
+        SUM(CASE WHEN status = 'paid' THEN amount ELSE 0 END) AS "paid",
+        SUM(CASE WHEN status = 'pending' THEN amount ELSE 0 END) AS "pending"
+      FROM invoices
+    `;
+
+    const [invoiceCount, customerCount, invoiceStatus] = await Promise.all([
+      invoiceCountPromise,
+      customerCountPromise,
+      invoiceStatusPromise,
     ]);
 
-    const numberOfInvoices = Number(invoiceCountResult.rows[0].count ?? '0');
-    const numberOfCustomers = Number(customerCountResult.rows[0].count ?? '0');
-    const totalPaidInvoices = formatCurrency(invoiceStatusResult.rows[0].paid ?? '0');
-    const totalPendingInvoices = formatCurrency(invoiceStatusResult.rows[0].pending ?? '0');
+    const numberOfInvoices = Number(invoiceCount.rows[0].count ?? "0");
+    const numberOfCustomers = Number(customerCount.rows[0].count ?? "0");
+    const totalPaidInvoices = formatCurrency(invoiceStatus.rows[0].paid ?? "0");
+    const totalPendingInvoices = formatCurrency(invoiceStatus.rows[0].pending ?? "0");
 
     return {
       numberOfCustomers,
@@ -62,13 +79,14 @@ export async function fetchCardData() {
       totalPendingInvoices,
     };
   } catch (error) {
-    console.error('Database Error:', error);
-    throw new Error('Failed to fetch card data.');
+    console.error("Database Error fetching card data:", error.message);
+    throw new Error("Failed to fetch card data.");
   }
 }
 
 const ITEMS_PER_PAGE = 6;
 
+// Fungsi untuk mengambil data invoice yang difilter
 export async function fetchFilteredInvoices(query, currentPage) {
   const offset = (currentPage - 1) * ITEMS_PER_PAGE;
 
@@ -85,22 +103,23 @@ export async function fetchFilteredInvoices(query, currentPage) {
       FROM invoices
       JOIN customers ON invoices.customer_id = customers.id
       WHERE
-        customers.name ILIKE ${`%${query}%`} OR
-        customers.email ILIKE ${`%${query}%`} OR
-        invoices.amount::text ILIKE ${`%${query}%`} OR
-        invoices.date::text ILIKE ${`%${query}%`} OR
-        invoices.status ILIKE ${`%${query}%`}
+        customers.name ILIKE ${'%' + query + '%'} OR
+        customers.email ILIKE ${'%' + query + '%'} OR
+        invoices.amount::text ILIKE ${'%' + query + '%'} OR
+        invoices.date::text ILIKE ${'%' + query + '%'} OR
+        invoices.status ILIKE ${'%' + query + '%'}
       ORDER BY invoices.date DESC
       LIMIT ${ITEMS_PER_PAGE} OFFSET ${offset}
     `;
 
     return invoices.rows;
   } catch (error) {
-    console.error('Database Error:', error);
-    throw new Error('Failed to fetch invoices.');
+    console.error("Database Error fetching filtered invoices:", error.message);
+    throw new Error("Failed to fetch invoices.");
   }
 }
 
+// Fungsi untuk mengambil total halaman invoice yang difilter
 export async function fetchInvoicesPages(query) {
   try {
     const count = await sql`
@@ -108,21 +127,22 @@ export async function fetchInvoicesPages(query) {
       FROM invoices
       JOIN customers ON invoices.customer_id = customers.id
       WHERE
-        customers.name ILIKE ${`%${query}%`} OR
-        customers.email ILIKE ${`%${query}%`} OR
-        invoices.amount::text ILIKE ${`%${query}%`} OR
-        invoices.date::text ILIKE ${`%${query}%`} OR
-        invoices.status ILIKE ${`%${query}%`}
+        customers.name ILIKE ${'%' + query + '%'} OR
+        customers.email ILIKE ${'%' + query + '%'} OR
+        invoices.amount::text ILIKE ${'%' + query + '%'} OR
+        invoices.date::text ILIKE ${'%' + query + '%'} OR
+        invoices.status ILIKE ${'%' + query + '%'}
     `;
 
     const totalPages = Math.ceil(Number(count.rows[0].count) / ITEMS_PER_PAGE);
     return totalPages;
   } catch (error) {
-    console.error('Database Error:', error);
-    throw new Error('Failed to fetch total number of invoices.');
+    console.error("Database Error fetching total number of invoices:", error.message);
+    throw new Error("Failed to fetch total number of invoices.");
   }
 }
 
+// Fungsi untuk mengambil data invoice berdasarkan ID
 export async function fetchInvoiceById(id) {
   try {
     const data = await sql`
@@ -142,11 +162,12 @@ export async function fetchInvoiceById(id) {
 
     return invoice[0];
   } catch (error) {
-    console.error('Database Error:', error);
-    throw new Error('Failed to fetch invoice.');
+    console.error("Database Error fetching invoice by ID:", error.message);
+    throw new Error("Failed to fetch invoice.");
   }
 }
 
+// Fungsi untuk mengambil data semua pelanggan
 export async function fetchCustomers() {
   try {
     const data = await sql`
@@ -158,12 +179,13 @@ export async function fetchCustomers() {
     `;
 
     return data.rows;
-  } catch (err) {
-    console.error('Database Error:', err);
-    throw new Error('Failed to fetch all customers.');
+  } catch (error) {
+    console.error("Database Error fetching all customers:", error.message);
+    throw new Error("Failed to fetch all customers.");
   }
 }
 
+// Fungsi untuk mengambil data pelanggan yang difilter
 export async function fetchFilteredCustomers(query) {
   try {
     const data = await sql`
@@ -178,8 +200,8 @@ export async function fetchFilteredCustomers(query) {
       FROM customers
       LEFT JOIN invoices ON customers.id = invoices.customer_id
       WHERE
-        customers.name ILIKE ${`%${query}%`} OR
-        customers.email ILIKE ${`%${query}%`}
+        customers.name ILIKE ${'%' + query + '%'} OR
+        customers.email ILIKE ${'%' + query + '%'}
       GROUP BY customers.id, customers.name, customers.email, customers.image_url
       ORDER BY customers.name ASC
     `;
@@ -191,8 +213,8 @@ export async function fetchFilteredCustomers(query) {
     }));
 
     return customers;
-  } catch (err) {
-    console.error('Database Error:', err);
-    throw new Error('Failed to fetch customer table.');
+  } catch (error) {
+    console.error("Database Error fetching filtered customers:", error.message);
+    throw new Error("Failed to fetch customer table.");
   }
 }
